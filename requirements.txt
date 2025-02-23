@@ -1,44 +1,45 @@
+# Core API Framework
 fastapi
 uvicorn
+
+# Machine Learning
 joblib
-requests
+scikit-learn
+numpy
+pandas
+
+# Web Scraping & Search
 beautifulsoup4
 googlesearch-python
 newspaper3k
-lxml_html_clean
-openai
-yake #added based on previous error
-tinysegmenter
-sgmllib3k
-jieba3k
-urllib3
-typing-extensions
-tqdm
-soupsieve
-sniffio
-six
-regex
-PyYAML
-Pillow
 lxml
-jiter
+
+# AI & NLP Processing
+openai
+nltk
+yake
+tqdm
+regex
+
+# HTTP Requests & Networking
+requests
+httpx
+urllib3
+
+# Data Parsing & Utilities
+python-dateutil
+PyYAML
+feedparser
+cssselect
+tldextract
+starlette
+
+# Encoding & System Utilities
+typing-extensions
+filelock
+distro
 idna
 h11
-filelock
-feedparser
-distro
-cssselect
 click
 charset-normalizer
 certifi
-annotated-types
-python-dateutil
-pydantic-core
-nltk
-httpcore
-anyio
-starlette
-requests-file
-pydantic
-httpx
-tldextract
