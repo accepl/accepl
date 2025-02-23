@@ -4,7 +4,7 @@ uvicorn
 starlette  # ✅ Required for FastAPI
 pydantic  # ✅ Data validation for FastAPI
 
-# Machine Learning
+# Machine Learning & NLP
 joblib
 scikit-learn
 numpy
@@ -15,7 +15,7 @@ fasttext  # ✅ Added for NLP improvements
 # Web Scraping & Search
 beautifulsoup4
 newspaper3k
-lxml
+lxml[html_clean]  # ✅ Fixes "ImportError: lxml.html.clean module is now a separate project"
 googlesearch-python  # ✅ Required for Google Search
 requests-html  # ✅ Improves web scraping
 
@@ -25,6 +25,8 @@ nltk
 yake
 tqdm
 regex
+spacy  # ✅ Added for better NLP processing (Named Entity Recognition)
+sentence-transformers  # ✅ Required for AI-based text similarity & embeddings
 
 # HTTP Requests & Networking
 requests
@@ -38,6 +40,7 @@ feedparser
 cssselect
 tldextract
 python-multipart  # ✅ Required for FastAPI file uploads
+email-validator  # ✅ Helps validate emails in FastAPI forms
 
 # Encoding & System Utilities
 typing-extensions
@@ -52,3 +55,5 @@ certifi
 # AI Deep Learning (For Future Expansions)
 torch  # ✅ Required for deep learning
 transformers  # ✅ Required for advanced AI/NLP
+sentencepiece  # ✅ Required for tokenizer models (e.g., BERT, GPT, T5)
+onnxruntime  # ✅ Enables fast inference for ML models (converts models to ONNX format)
