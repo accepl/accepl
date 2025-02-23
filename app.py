@@ -1,130 +1,142 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+import os
 import joblib
-import pandas as pd
-from googlesearch import search
 import uvicorn
+import openai
+import pandas as pd
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse
+from bs4 import BeautifulSoup
+from googlesearch import search
+from newspaper import Article
+import yake
+import re
 
-# ✅ Initialize FastAPI App
+# ✅ Ensure models are loaded
+MODEL_DIR = "models"
+
+def load_model(model_name):
+    model_path = os.path.join(MODEL_DIR, f"{model_name}.pkl")
+    return joblib.load(model_path) if os.path.exists(model_path) else None
+
+# ✅ Load all models
+models = {
+    "bess": load_model("bess_model"),
+    "fault": load_model("fault_model"),
+    "finance": load_model("finance_model"),
+    "grid": load_model("grid_model"),
+    "oil_gas": load_model("oil_gas_model"),
+    "renewable": load_model("renewable_model"),
+    "space": load_model("space_model"),
+    "telecom": load_model("telecom_model"),
+    "maintenance": load_model("maintenance_model"),
+    "military": load_model("military_model"),
+    "loss": load_model("loss_model")
+}
+
+# ✅ Web scraping & AI functions
+openai.api_key = "your_openai_api_key"
+
+def clean_text(text):
+    text = re.sub(r'\n+', '\n', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+def google_search(query, num_results=5):
+    return [url for url in search(query, num_results=num_results)]
+
+def extract_content(url):
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        return clean_text(article.text[:5000])
+    except Exception as e:
+        return f"Error extracting content: {e}"
+
+def extract_keywords(text, num_keywords=5):
+    kw_extractor = yake.KeywordExtractor(n=1, top=num_keywords)
+    return [word for word, _ in kw_extractor.extract_keywords(text)]
+
+def summarize_content(content):
+    if not content or len(content) < 100:
+        return "Not enough content to summarize."
+    
+    prompt = f"Summarize this article and provide key insights:\n\n{content}"
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return response["choices"][0]["message"]["content"]
+
+# ✅ FastAPI App
 app = FastAPI()
 
-# ✅ Load AI Models
-try:
-    bess_model = joblib.load("bess_model.pkl")
-    fault_model = joblib.load("fault_model.pkl")
-    finance_model = joblib.load("finance_model.pkl")
-    grid_model = joblib.load("grid_model.pkl")
-    oil_gas_model = joblib.load("oil_gas_model.pkl")
-    renewable_model = joblib.load("renewable_model.pkl")
-    space_model = joblib.load("space_model.pkl")
-    telecom_model = joblib.load("telecom_model.pkl")
-except:
-    bess_model = fault_model = finance_model = grid_model = None
-    oil_gas_model = renewable_model = space_model = telecom_model = None
-
-# ✅ Web Search (No API Key Required)
-def google_search(query, num_results=5):
-    results = [url for url in search(query, num_results=num_results)]
-    return results
-
-# ✅ Frontend UI
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI + Web Search</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        h1 { color: #007BFF; }
-        form { margin-top: 20px; }
-        input, button { padding: 10px; margin: 5px; width: 300px; }
-        .results { margin-top: 20px; text-align: left; }
-    </style>
-</head>
-<body>
-    <img src="https://your-logo-url.com/logo.jpg" alt="Logo" width="200">
-    <h1>AI Models + Web Search</h1>
-    
-    <form method="post" action="/search">
-        <input type="text" name="query" placeholder="Enter search query" required>
-        <button type="submit">Search</button>
-    </form>
-    
-    <h2>Predict AI Models</h2>
-    
-    <form method="post" action="/predict_bess">
-        <h3>BESS Model</h3>
-        <input type="number" name="grid_load" placeholder="Grid Load (MW)" required>
-        <input type="number" name="battery_soc" placeholder="Battery SOC (%)" required>
-        <input type="number" name="energy_price" placeholder="Energy Price ($/kWh)" required>
-        <button type="submit">Predict BESS Efficiency</button>
-    </form>
-
-    <form method="post" action="/predict_fault">
-        <h3>Fault Detection Model</h3>
-        <input type="number" name="voltage" placeholder="Voltage (kV)" required>
-        <input type="number" name="frequency" placeholder="Frequency (Hz)" required>
-        <input type="number" name="load" placeholder="Transformer Load (MW)" required>
-        <button type="submit">Predict Fault Risk</button>
-    </form>
-
-    <form method="post" action="/predict_finance">
-        <h3>Financial Model</h3>
-        <input type="number" name="investment" placeholder="Investment (₹ Cr)" required>
-        <input type="number" name="roi" placeholder="ROI (%)" required>
-        <input type="number" name="interest" placeholder="Interest Rate (%)" required>
-        <button type="submit">Predict Financial Stability</button>
-    </form>
-
-    <div class="results">
-        <h2>Results:</h2>
-        <ul>{results}</ul>
-    </div>
-</body>
-</html>
-"""
-
-# ✅ Home Route (Frontend)
+# ✅ Render the web page
 @app.get("/", response_class=HTMLResponse)
-async def home():
-    return HTML_TEMPLATE.format(results="")
+def home():
+    return """
+    <html>
+        <head>
+            <title>AI Prediction & Web Search</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; }
+                h1 { color: #007bff; }
+                form { margin-top: 20px; }
+                input { padding: 10px; width: 300px; }
+                button { padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+            </style>
+        </head>
+        <body>
+            <img src="/logo.jpg" alt="Logo" width="200">
+            <h1>AI Model Prediction & Web Search</h1>
+            <form action="/predict" method="post">
+                <input type="text" name="model" placeholder="Enter Model Name (e.g., bess, grid)">
+                <input type="text" name="data" placeholder="Enter Data (comma-separated values)">
+                <button type="submit">Predict</button>
+            </form>
+            <form action="/websearch" method="post">
+                <input type="text" name="query" placeholder="Enter Search Query">
+                <button type="submit">Search</button>
+            </form>
+        </body>
+    </html>
+    """
 
-# ✅ Web Search Route
-@app.post("/search", response_class=HTMLResponse)
-async def perform_search(query: str = Form(...)):
-    search_results = google_search(query)
-    results_html = "".join(f"<li><a href='{url}' target='_blank'>{url}</a></li>" for url in search_results)
-    return HTML_TEMPLATE.format(results=results_html)
+# ✅ Prediction API
+@app.post("/predict")
+def predict(model: str = Form(...), data: str = Form(...)):
+    if model not in models or models[model] is None:
+        return {"error": f"Model '{model}' not found."}
+    
+    try:
+        input_data = [float(x) for x in data.split(",")]
+        model_instance = models[model]
+        prediction = model_instance.predict([input_data])[0]
+        return {"model": model, "prediction": prediction}
+    except Exception as e:
+        return {"error": f"Prediction failed: {str(e)}"}
 
-# ✅ AI Model Prediction Routes
+# ✅ Web Search API
+@app.post("/websearch")
+def web_search(query: str = Form(...), num_results: int = 3):
+    search_results = google_search(query, num_results)
+    
+    structured_results = []
+    for url in search_results:
+        content = extract_content(url)
+        summary = summarize_content(content)
+        keywords = extract_keywords(content)
 
-@app.post("/predict_bess", response_class=HTMLResponse)
-async def predict_bess(grid_load: float = Form(...), battery_soc: float = Form(...), energy_price: float = Form(...)):
-    if bess_model:
-        df = pd.DataFrame([[grid_load, battery_soc, energy_price]], columns=['Grid Load (MW)', 'Battery SOC (%)', 'Energy Price ($/kWh)'])
-        prediction = bess_model.predict(df)[0]
-        return HTML_TEMPLATE.format(results=f"<li>Predicted Charging Efficiency: {prediction:.2f}%</li>")
-    return HTML_TEMPLATE.format(results="<li>BESS Model Not Loaded</li>")
+        structured_results.append({
+            "url": url,
+            "summary": summary,
+            "keywords": keywords
+        })
 
-@app.post("/predict_fault", response_class=HTMLResponse)
-async def predict_fault(voltage: float = Form(...), frequency: float = Form(...), load: float = Form(...)):
-    if fault_model:
-        df = pd.DataFrame([[voltage, frequency, load]], columns=['Voltage (kV)', 'Frequency (Hz)', 'Transformer Load (MW)'])
-        prediction = fault_model.predict(df)[0]
-        return HTML_TEMPLATE.format(results=f"<li>Fault Risk: {'Yes' if prediction == 1 else 'No'}</li>")
-    return HTML_TEMPLATE.format(results="<li>Fault Model Not Loaded</li>")
+    return {"query": query, "results": structured_results}
 
-@app.post("/predict_finance", response_class=HTMLResponse)
-async def predict_finance(investment: float = Form(...), roi: float = Form(...), interest: float = Form(...)):
-    if finance_model:
-        df = pd.DataFrame([[investment, roi, interest]], columns=['Project Investment (₹ Cr)', 'ROI (%)', 'Interest Rate (%)'])
-        prediction = finance_model.predict(df)[0]
-        return HTML_TEMPLATE.format(results=f"<li>Financial Stability Score: {prediction:.2f}</li>")
-    return HTML_TEMPLATE.format(results="<li>Finance Model Not Loaded</li>")
-
-# ✅ Run Server
+# ✅ Run server
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
