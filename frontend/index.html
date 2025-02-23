@@ -13,38 +13,101 @@
 
     <h2 class="text-2xl font-semibold text-gray-700 mb-4">AI Prediction & Web Search</h2>
 
-    <!-- Input & Button -->
+    <!-- API Key Input -->
+    <input type="text" id="apiKey" placeholder="Enter API Key" 
+           class="p-3 border border-gray-300 rounded-lg text-lg mb-3 w-full max-w-xl">
+
+    <!-- Web Search Section -->
     <div class="flex w-full max-w-xl">
-        <input type="text" id="userInput" placeholder="Enter your prompt..."
+        <input type="text" id="userInput" placeholder="Enter search query..."
                class="flex-grow p-3 border border-gray-300 rounded-l-lg text-lg">
         <button onclick="sendRequest()"
                 class="bg-blue-600 text-white px-6 py-3 rounded-r-lg hover:bg-blue-700">
-            Submit
+            Search
         </button>
     </div>
 
-    <!-- Response Box -->
+    <!-- AI Model Prediction Section -->
+    <div class="flex flex-col w-full max-w-xl mt-6">
+        <select id="modelSelect" class="p-3 border border-gray-300 rounded-lg text-lg mb-3">
+            <option value="grid">Grid Model</option>
+            <option value="bess">BESS Model</option>
+            <option value="finance">Finance Model</option>
+            <option value="renewable">Renewable Model</option>
+            <option value="telecom">Telecom Model</option>
+        </select>
+        <input type="text" id="modelInput" placeholder="Enter model input (comma-separated numbers)..."
+               class="p-3 border border-gray-300 rounded-lg text-lg">
+        <button onclick="predictModel()"
+                class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 mt-3">
+            Get AI Prediction
+        </button>
+    </div>
+
+    <!-- Response Boxes -->
     <div id="response" class="w-full max-w-xl bg-white shadow-lg p-4 mt-6 rounded-lg hidden">
         <h3 class="text-lg font-bold text-gray-700">Results:</h3>
+        <pre class="text-sm text-gray-600 mt-2"></pre>
+    </div>
+
+    <div id="predictionResponse" class="w-full max-w-xl bg-white shadow-lg p-4 mt-6 rounded-lg hidden">
+        <h3 class="text-lg font-bold text-gray-700">Prediction:</h3>
         <pre class="text-sm text-gray-600 mt-2"></pre>
     </div>
 
     <script>
         async function sendRequest() {
             let query = document.getElementById("userInput").value;
+            let apiKey = document.getElementById("apiKey").value;
             let responseBox = document.getElementById("response");
             let responseText = responseBox.querySelector("pre");
 
             if (!query) {
-                alert("Please enter a prompt!");
+                alert("Please enter a search query!");
+                return;
+            }
+            if (!apiKey) {
+                alert("Please enter your API key!");
                 return;
             }
 
-            // Call FastAPI backend with the user input
-            let response = await fetch(`https://accepl-api.onrender.com/search/?query=${query}`);
+            let response = await fetch(`https://accepl-api.onrender.com/search/?query=${query}`, {
+                headers: { "api_key": apiKey }
+            });
+
             let data = await response.json();
+            responseText.innerHTML = JSON.stringify(data, null, 2);
+            responseBox.classList.remove("hidden");
+        }
+
+        async function predictModel() {
+            let model = document.getElementById("modelSelect").value;
+            let input = document.getElementById("modelInput").value;
+            let apiKey = document.getElementById("apiKey").value;
+            let responseBox = document.getElementById("predictionResponse");
+            let responseText = responseBox.querySelector("pre");
+
+            if (!input) {
+                alert("Please enter input values for prediction!");
+                return;
+            }
+            if (!apiKey) {
+                alert("Please enter your API key!");
+                return;
+            }
+
+            let features = input.split(",").map(Number);
             
-            // Display the response
+            let response = await fetch(`https://accepl-api.onrender.com/predict/${model}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "api_key": apiKey
+                },
+                body: JSON.stringify({ "features": features })
+            });
+
+            let data = await response.json();
             responseText.innerHTML = JSON.stringify(data, null, 2);
             responseBox.classList.remove("hidden");
         }
