@@ -7,15 +7,14 @@ joblib
 scikit-learn
 numpy
 pandas
+scipy  # ✅ Added for better ML support
 
 # Web Scraping & Search
 beautifulsoup4
-googlesearch-python
 newspaper3k
 lxml
 
 # AI & NLP Processing
-openai
 nltk
 yake
 tqdm
@@ -32,7 +31,6 @@ PyYAML
 feedparser
 cssselect
 tldextract
-starlette
 
 # Encoding & System Utilities
 typing-extensions
