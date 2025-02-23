@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 import joblib
 import os
 from advanced_web_search import web_search
@@ -32,18 +33,38 @@ for key, path in MODEL_PATHS.items():
 def home():
     return {"message": "AI Prediction & Web Search API is running!"}
 
-@app.get("/predict/{model_name}")
-def predict(model_name: str):
+# User Input Model for Predictions
+class PredictionInput(BaseModel):
+    features: list  # List of numbers (features for model prediction)
+
+@app.post("/predict/{model_name}")
+def predict(model_name: str, input_data: PredictionInput):
     if model_name not in models:
         return {"error": "Invalid model name or model not found"}
     
     model = models[model_name]
-    sample_input = [[0.5, 0.8, 0.3, 0.2, 0.7]]  # Replace with actual input format
-    prediction = model.predict(sample_input)[0]
-    return {f"{model_name}_prediction": prediction}
+    prediction = model.predict([input_data.features])[0]
+    return {
+        "Model": model_name,
+        "Input Features": input_data.features,
+        "Prediction": prediction
+    }
 
 @app.get("/search/")
 def search_web(query: str):
     """API endpoint for real-time web search."""
     search_results = web_search(query)
-    return search_results
+
+    formatted_results = []
+    for result in search_results["results"]:
+        formatted_results.append({
+            "URL": result["url"],
+            "Summary": result["summary"],
+            "Keywords": ", ".join(result["keywords"])
+        })
+
+    return {
+        "Query": query,
+        "Total Results": len(formatted_results),
+        "Results": formatted_results
+    }
