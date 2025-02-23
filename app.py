@@ -1,10 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, Header
 from pydantic import BaseModel
 import joblib
 import os
 from advanced_web_search import web_search
 
 app = FastAPI()
+
+# Define API Keys (For security, store these in environment variables in production)
+API_KEYS = {"your-secure-api-key-123": "User1"}
+
+# Authentication function
+def authenticate(api_key: str = Header(None)):
+    if api_key not in API_KEYS:
+        raise HTTPException(status_code=401, detail="Unauthorized - Invalid API Key")
+    return API_KEYS[api_key]
 
 # Define the local paths for all models
 MODEL_PATHS = {
@@ -38,7 +47,7 @@ class PredictionInput(BaseModel):
     features: list  # List of numbers (features for model prediction)
 
 @app.post("/predict/{model_name}")
-def predict(model_name: str, input_data: PredictionInput):
+def predict(model_name: str, input_data: PredictionInput, api_key: str = Depends(authenticate)):
     if model_name not in models:
         return {"error": "Invalid model name or model not found"}
     
@@ -51,7 +60,7 @@ def predict(model_name: str, input_data: PredictionInput):
     }
 
 @app.get("/search/")
-def search_web(query: str):
+def search_web(query: str, api_key: str = Depends(authenticate)):
     """API endpoint for real-time web search."""
     search_results = web_search(query)
 
