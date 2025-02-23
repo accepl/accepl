@@ -1,10 +1,15 @@
+import os
 import pandas as pd
 import numpy as np
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import accuracy_score, mean_absolute_error
+
+# ✅ Ensure 'models/' directory exists
+if not os.path.exists("models"):
+    os.makedirs("models")
 
 # ✅ 1️⃣ Train AI for BESS (Battery Energy Storage System)
 def train_bess_model():
@@ -18,10 +23,15 @@ def train_bess_model():
     })
     X = df.drop("Charging Efficiency (%)", axis=1)
     y = df["Charging Efficiency (%)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X, y)
-    joblib.dump(model, "bess_model.pkl")
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+    model.fit(X_scaled, y)
+
+    joblib.dump(model, "models/bess_model.pkl")
+    joblib.dump(scaler, "models/bess_scaler.pkl")
     print("✅ BESS Model Trained & Saved!")
 
 # ✅ 2️⃣ Train Fault Detection Model
@@ -34,13 +44,14 @@ def train_fault_model():
         'Overcurrent Protection Triggered (Y/N)': ["No", "Yes", "No", "Yes"]
     })
     df['Overcurrent Protection Triggered (Y/N)'] = LabelEncoder().fit_transform(df['Overcurrent Protection Triggered (Y/N)'])
-    
+
     X = df.drop("Overcurrent Protection Triggered (Y/N)", axis=1)
     y = df["Overcurrent Protection Triggered (Y/N)"]
-    
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+    model = RandomForestClassifier(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "fault_model.pkl")
+
+    joblib.dump(model, "models/fault_model.pkl")
     print("✅ Fault Detection Model Trained & Saved!")
 
 # ✅ 3️⃣ Train Financial Model
@@ -54,10 +65,11 @@ def train_finance_model():
     })
     X = df.drop("Financial Stability Index", axis=1)
     y = df["Financial Stability Index"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "finance_model.pkl")
+
+    joblib.dump(model, "models/finance_model.pkl")
     print("✅ Financial Model Trained & Saved!")
 
 # ✅ 4️⃣ Train Grid Load Prediction Model
@@ -71,10 +83,11 @@ def train_grid_model():
     })
     X = df.drop("Power Grid Stress (%)", axis=1)
     y = df["Power Grid Stress (%)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "grid_model.pkl")
+
+    joblib.dump(model, "models/grid_model.pkl")
     print("✅ Grid Load Model Trained & Saved!")
 
 # ✅ 5️⃣ Train Oil & Gas Model
@@ -87,10 +100,11 @@ def train_oil_gas_model():
     })
     X = df.drop("Refinery Efficiency (%)", axis=1)
     y = df["Refinery Efficiency (%)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "oil_gas_model.pkl")
+
+    joblib.dump(model, "models/oil_gas_model.pkl")
     print("✅ Oil & Gas Model Trained & Saved!")
 
 # ✅ 6️⃣ Train Renewable Energy Model
@@ -103,10 +117,11 @@ def train_renewable_model():
     })
     X = df.drop("Grid Integration Rate (%)", axis=1)
     y = df["Grid Integration Rate (%)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "renewable_model.pkl")
+
+    joblib.dump(model, "models/renewable_model.pkl")
     print("✅ Renewable Model Trained & Saved!")
 
 # ✅ 7️⃣ Train Space & Aerospace Model
@@ -119,10 +134,11 @@ def train_space_model():
     })
     X = df.drop("Satellite Orbit Stability (%)", axis=1)
     y = df["Satellite Orbit Stability (%)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "space_model.pkl")
+
+    joblib.dump(model, "models/space_model.pkl")
     print("✅ Space Model Trained & Saved!")
 
 # ✅ 8️⃣ Train Telecom AI Model
@@ -136,20 +152,53 @@ def train_telecom_model():
     })
     X = df.drop("Network Latency (ms)", axis=1)
     y = df["Network Latency (ms)"]
-    
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
     model.fit(X, y)
-    joblib.dump(model, "telecom_model.pkl")
+
+    joblib.dump(model, "models/telecom_model.pkl")
     print("✅ Telecom Model Trained & Saved!")
 
-# 🚀 **Train All Models**
+# ✅ 9️⃣ Train Maintenance Model
+def train_maintenance_model():
+    df = pd.DataFrame({
+        'Equipment Age (Years)': [5, 10, 15],
+        'Failure Rate (%)': [2, 5, 8],
+        'Maintenance Cost ($)': [1000, 2500, 5000]
+    })
+    X = df.drop("Maintenance Cost ($)", axis=1)
+    y = df["Maintenance Cost ($)"]
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+    model.fit(X, y)
+
+    joblib.dump(model, "models/maintenance_model.pkl")
+    print("✅ Maintenance Model Trained & Saved!")
+
+# ✅ 🔟 Train Military AI Model
+def train_military_model():
+    df = pd.DataFrame({
+        'Sensor Accuracy (%)': [90, 95],
+        'Threat Level': [1, 3],
+        'Response Time (ms)': [200, 150]
+    })
+    X = df.drop("Response Time (ms)", axis=1)
+    y = df["Response Time (ms)"]
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=5)
+    model.fit(X, y)
+
+    joblib.dump(model, "models/military_model.pkl")
+    print("✅ Military Model Trained & Saved!")
+
+# ✅ 1️⃣1️⃣ Train Loss Model
+def train_loss_model():
+    df = pd.DataFrame({'Power Loss (MW)': [5, 10, 15], 'Grid Load (MW)': [200, 400, 600]})
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(df[['Grid Load (MW)']], df['Power Loss (MW)'])
+    joblib.dump(model, "models/loss_model.pkl")
+    print("✅ Loss Model Trained & Saved!")
+
+# 🚀 Train all 11 models
 if __name__ == "__main__":
-    train_bess_model()
-    train_fault_model()
-    train_finance_model()
-    train_grid_model()
-    train_oil_gas_model()
-    train_renewable_model()
-    train_space_model()
-    train_telecom_model()
-    print("🎯 All Models Trained & Saved Successfully!")
+    train_loss_model()
