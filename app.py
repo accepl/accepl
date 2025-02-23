@@ -1,111 +1,120 @@
-import os
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse
 import joblib
 import uvicorn
-import pandas as pd
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
-from advanced_web_search import web_search
+import requests
+from bs4 import BeautifulSoup
+import os
 
-# ✅ Load Models (Now Directly Inside app.py)
-try:
-    bess_model = joblib.load("bess_model.pkl")
-    fault_model = joblib.load("fault_model.pkl")
-    finance_model = joblib.load("finance_model.pkl")
-    grid_model = joblib.load("grid_model.pkl")
-    oil_gas_model = joblib.load("oil_gas_model.pkl")
-    renewable_model = joblib.load("renewable_model.pkl")
-    space_model = joblib.load("space_model.pkl")
-    telecom_model = joblib.load("telecom_model.pkl")
-    print("✅ All models loaded successfully!")
-except Exception as e:
-    print(f"❌ Error loading models: {e}")
+# ✅ Load AI Models
+bess_model = joblib.load("bess_model.pkl")
+fault_model = joblib.load("fault_model.pkl")
+finance_model = joblib.load("finance_model.pkl")
+grid_model = joblib.load("grid_model.pkl")
+oil_gas_model = joblib.load("oil_gas_model.pkl")
+renewable_model = joblib.load("renewable_model.pkl")
+space_model = joblib.load("space_model.pkl")
+telecom_model = joblib.load("telecom_model.pkl")
+
+# ✅ Store models in dictionary for easy access
+models = {
+    "bess": bess_model,
+    "fault": fault_model,
+    "finance": finance_model,
+    "grid": grid_model,
+    "oil_gas": oil_gas_model,
+    "renewable": renewable_model,
+    "space": space_model,
+    "telecom": telecom_model,
+}
 
 # ✅ Initialize FastAPI
 app = FastAPI()
 
-# ✅ Serve Static Frontend (HTML + Logo)
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+# ✅ Basic Web Scraper for Search Feature
+def web_search(query):
+    search_url = f"https://www.google.com/search?q={query}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(search_url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
+    results = []
+    
+    for g in soup.find_all('div', class_='tF2Cxc'):
+        title = g.find('h3').text if g.find('h3') else "No Title"
+        link = g.find('a')['href'] if g.find('a') else "No Link"
+        results.append(f"<a href='{link}' target='_blank'>{title}</a>")
+    
+    return "<br>".join(results[:5]) if results else "No results found."
 
+# ✅ Homepage with Embedded HTML
 @app.get("/", response_class=HTMLResponse)
-async def serve_index():
-    return FileResponse("frontend/index.html")
+async def homepage():
+    return f"""
+    <html>
+    <head>
+        <title>AI Prediction & Web Search</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; text-align: center; padding: 20px; }}
+            .container {{ max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }}
+            img {{ width: 150px; margin-bottom: 10px; }}
+            select, input, button {{ width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ddd; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <img src="https://raw.githubusercontent.com/accepl/accepl/main/logo.jpg" alt="Company Logo">
+            <h2>AI Prediction & Web Search</h2>
+            
+            <!-- AI Prediction Form -->
+            <form action="/predict" method="post">
+                <label>Select AI Model:</label>
+                <select name="model_name">
+                    <option value="bess">BESS (Battery)</option>
+                    <option value="fault">Fault Detection</option>
+                    <option value="finance">Financial</option>
+                    <option value="grid">Grid Load</option>
+                    <option value="oil_gas">Oil & Gas</option>
+                    <option value="renewable">Renewable Energy</option>
+                    <option value="space">Space & Aerospace</option>
+                    <option value="telecom">Telecom</option>
+                </select>
+                <label>Enter Data (comma-separated):</label>
+                <input type="text" name="user_input" placeholder="e.g. 500,85,0.07,320">
+                <button type="submit">Predict</button>
+            </form>
+            
+            <!-- Web Search Form -->
+            <form action="/search" method="post">
+                <label>Search the Web:</label>
+                <input type="text" name="query" placeholder="Enter search query">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """
 
-# ✅ Define Input Model
-class InputData(BaseModel):
-    input_features: list
+# ✅ AI Prediction Endpoint
+@app.post("/predict", response_class=HTMLResponse)
+async def predict(request: Request, user_input: str = Form(...), model_name: str = Form(...)):
+    if model_name in models:
+        model = models[model_name]
+        try:
+            prediction = model.predict([[float(x) for x in user_input.split(",")]])[0]
+            result = f"<h3>Prediction for {model_name}: {prediction}</h3>"
+        except Exception as e:
+            result = f"<h3>Error: {str(e)}</h3>"
+    else:
+        result = "<h3>Invalid Model Selected</h3>"
 
-# ✅ AI Prediction Endpoints
-@app.post("/predict/bess")
-async def predict_bess(data: InputData):
-    try:
-        result = bess_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return homepage() + f"<div class='container'>{result}</div>"
 
-@app.post("/predict/fault")
-async def predict_fault(data: InputData):
-    try:
-        result = fault_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# ✅ Web Search Endpoint
+@app.post("/search", response_class=HTMLResponse)
+async def search(request: Request, query: str = Form(...)):
+    results = web_search(query)
+    return homepage() + f"<div class='container'><h3>Search Results:</h3>{results}</div>"
 
-@app.post("/predict/finance")
-async def predict_finance(data: InputData):
-    try:
-        result = finance_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict/grid")
-async def predict_grid(data: InputData):
-    try:
-        result = grid_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict/oil_gas")
-async def predict_oil_gas(data: InputData):
-    try:
-        result = oil_gas_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict/renewable")
-async def predict_renewable(data: InputData):
-    try:
-        result = renewable_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict/space")
-async def predict_space(data: InputData):
-    try:
-        result = space_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict/telecom")
-async def predict_telecom(data: InputData):
-    try:
-        result = telecom_model.predict([data.input_features])
-        return {"prediction": result.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ✅ AI-Powered Web Search
-@app.get("/search")
-async def search_web(query: str):
-    return {"results": web_search(query)}
-
-# ✅ Run App
+# ✅ Run FastAPI
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
