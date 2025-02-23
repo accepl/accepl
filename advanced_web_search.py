@@ -2,16 +2,12 @@ import requests
 from bs4 import BeautifulSoup
 from googlesearch import search
 from newspaper import Article
-import openai
 import nltk
 import yake
 import re
 
 # Ensure nltk resources are available
 nltk.download("punkt")
-
-# OpenAI API Key (Replace with your actual API Key)
-OPENAI_API_KEY = "your_openai_api_key"
 
 def clean_text(text):
     """Cleans extracted text by removing unnecessary spaces and newlines."""
@@ -22,8 +18,11 @@ def clean_text(text):
 def google_search(query, num_results=5):
     """Perform a Google search and return the top N results."""
     search_results = []
-    for result in search(query, num_results=num_results):
-        search_results.append(result)
+    try:
+        for result in search(query, num_results=num_results):
+            search_results.append(result)
+    except Exception as e:
+        print(f"Google Search Error: {e}")
     return search_results
 
 def extract_content(url):
@@ -42,20 +41,10 @@ def extract_keywords(text, num_keywords=5):
     keywords = kw_extractor.extract_keywords(text)
     return [word for word, _ in keywords]
 
-def summarize_content(content):
-    """Summarizes extracted content using OpenAI GPT-4."""
-    if not content or len(content) < 100:
-        return "Not enough content to summarize."
-
-    prompt = f"Summarize this article and provide key insights:\n\n{content}"
-
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        api_key=OPENAI_API_KEY
-    )
-
-    return response["choices"][0]["message"]["content"]
+def summarize_text(text, max_sentences=3):
+    """Simple text summarization by extracting the first few sentences."""
+    sentences = nltk.sent_tokenize(text)
+    return " ".join(sentences[:max_sentences]) if len(sentences) > 3 else text
 
 def web_search(query, num_results=5):
     """Performs an advanced web search, extracts insights, and summarizes key points."""
@@ -64,7 +53,7 @@ def web_search(query, num_results=5):
     structured_results = []
     for url in search_results:
         content = extract_content(url)
-        summary = summarize_content(content)
+        summary = summarize_text(content)
         keywords = extract_keywords(content)
 
         structured_results.append({
