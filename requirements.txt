@@ -1,6 +1,8 @@
 # Core API Framework
 fastapi
 uvicorn
+starlette  # ✅ Required for FastAPI
+pydantic  # ✅ Data validation for FastAPI
 
 # Machine Learning
 joblib
@@ -8,13 +10,17 @@ scikit-learn
 numpy
 pandas
 scipy  # ✅ Added for better ML support
+fasttext  # ✅ Added for NLP improvements
 
 # Web Scraping & Search
 beautifulsoup4
 newspaper3k
 lxml
+googlesearch-python  # ✅ Required for Google Search
+requests-html  # ✅ Improves web scraping
 
 # AI & NLP Processing
+openai  # ✅ Required for AI summarization
 nltk
 yake
 tqdm
@@ -31,6 +37,7 @@ PyYAML
 feedparser
 cssselect
 tldextract
+python-multipart  # ✅ Required for FastAPI file uploads
 
 # Encoding & System Utilities
 typing-extensions
@@ -41,3 +48,7 @@ h11
 click
 charset-normalizer
 certifi
+
+# AI Deep Learning (For Future Expansions)
+torch  # ✅ Required for deep learning
+transformers  # ✅ Required for advanced AI/NLP
