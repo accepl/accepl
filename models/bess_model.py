@@ -1,10 +1,9 @@
+import os
 import joblib
 
-# Load the trained model
-model = joblib.load("models/bess_model.pkl")
+# Corrected file path
+model_path = os.path.join(os.path.dirname(__file__), "bess_model.pkl")
+model = joblib.load(model_path)
 
-# Sample prediction
-sample_input = [[0.5, 0.8, 0.3, 0.2, 0.7]]
-prediction = model.predict(sample_input)[0]
-
-print(f"BESS Model Prediction: {prediction}")
+def predict_bess(input_data):
+    return model.predict([input_data])
