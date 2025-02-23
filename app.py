@@ -1,59 +1,111 @@
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
+ import os
+import joblib
 import uvicorn
-
-# Import AI Models (Updated Paths)
-from models.bess_model import bess_function
-from models.fault_model import fault_function
-from models.finance_model import finance_function
-from models.grid_model import grid_function
-from models.loss_model import loss_function
-from models.maintenance_model import maintenance_function
-from models.military_model import military_function
-from models.oil_gas_model import oil_gas_function
-from models.renewable_model import renewable_function
-from models.space_model import space_function
-from models.telecom_model import telecom_function
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import BaseModel
 from advanced_web_search import web_search
 
+# ✅ Load Models (Now Directly Inside app.py)
+try:
+    bess_model = joblib.load("bess_model.pkl")
+    fault_model = joblib.load("fault_model.pkl")
+    finance_model = joblib.load("finance_model.pkl")
+    grid_model = joblib.load("grid_model.pkl")
+    oil_gas_model = joblib.load("oil_gas_model.pkl")
+    renewable_model = joblib.load("renewable_model.pkl")
+    space_model = joblib.load("space_model.pkl")
+    telecom_model = joblib.load("telecom_model.pkl")
+    print("✅ All models loaded successfully!")
+except Exception as e:
+    print(f"❌ Error loading models: {e}")
+
+# ✅ Initialize FastAPI
 app = FastAPI()
 
-# Serve Static Files (Logo, etc.)
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# ✅ Serve Static Frontend (HTML + Logo)
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
-# Root Route - HTML UI
 @app.get("/", response_class=HTMLResponse)
-async def homepage():
-    return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Prediction & Web Search</title>
-        <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-            img { max-width: 200px; margin-bottom: 20px; }
-            input, button { padding: 10px; margin: 5px; font-size: 16px; }
-        </style>
-    </head>
-    <body>
-        <img src="/static/logo.jpg" alt="Logo">
-        <h1>AI Prediction & Web Search</h1>
-        <form action="/predict" method="post">
-            <input type="text" name="query" placeholder="Enter your query" required>
-            <button type="submit">Submit</button>
-        </form>
-    </body>
-    </html>
-    """
+async def serve_index():
+    return FileResponse("frontend/index.html")
 
-# Prediction Endpoint
-@app.post("/predict")
-async def predict(query: str = Form(...)):
-    response = web_search(query)  # Call web search function
-    return {"query": query, "result": response}
+# ✅ Define Input Model
+class InputData(BaseModel):
+    input_features: list
 
+# ✅ AI Prediction Endpoints
+@app.post("/predict/bess")
+async def predict_bess(data: InputData):
+    try:
+        result = bess_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/fault")
+async def predict_fault(data: InputData):
+    try:
+        result = fault_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/finance")
+async def predict_finance(data: InputData):
+    try:
+        result = finance_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/grid")
+async def predict_grid(data: InputData):
+    try:
+        result = grid_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/oil_gas")
+async def predict_oil_gas(data: InputData):
+    try:
+        result = oil_gas_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/renewable")
+async def predict_renewable(data: InputData):
+    try:
+        result = renewable_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/space")
+async def predict_space(data: InputData):
+    try:
+        result = space_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/telecom")
+async def predict_telecom(data: InputData):
+    try:
+        result = telecom_model.predict([data.input_features])
+        return {"prediction": result.tolist()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ✅ AI-Powered Web Search
+@app.get("/search")
+async def search_web(query: str):
+    return {"results": web_search(query)}
+
+# ✅ Run App
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
